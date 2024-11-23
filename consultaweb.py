@@ -34,7 +34,9 @@ def check_webs(df):
 def create_response_csv_files(df):
     os.makedirs('resultados', exist_ok=True)  # Crear un directorio para los archivos CSV
 
+    print(df.head())
     # Filtrar y guardar los resultados con código 200
+    df['HttpStatus'] = pd.to_numeric(df['HttpStatus'], errors='coerce').fillna(0).astype(int)
     df_200 = df[df['HttpStatus'] == 200]
     filename_200 = 'resultados/resultado_200.csv'
     df_200.to_csv(filename_200, index=False)
@@ -83,10 +85,25 @@ def view_results(df):
     print("\nListado de códigos de respuesta distintos de 200:")
     print(tabulate(non_200_status, headers='keys', tablefmt='pretty'))
 
+def check_empty_webs(df):
+    # Contar cuántas filas tienen la columna 'WebAyuntamiento' vacía (NaN o cadenas vacías)
+    empty_count = df['WebAyuntamiento'].isnull().sum() + (df['WebAyuntamiento'].str.strip() == '').sum()
+
+    print(f"\nTotal deregistros con 'WebAyuntamiento' vacío: {empty_count}")
+
+def filter_empty_webs(df):
+    # Filtrar las filas donde 'WebAyuntamiento' no sea NaN y no sea una cadena vacía
+    df_filtered = df[df['WebAyuntamiento'].notna() & (df['WebAyuntamiento'].str.strip() != '')]
+
+    # Guardar el DataFrame filtrado en un nuevo archivo CSV
+    output_filename = 'ayuntamientos_filtrados.csv'
+    df_filtered.to_csv(output_filename, index=False)
+
+    print(f"Archivo creado: {output_filename} con {len(df_filtered)} registros.")
 
 # Función principal del menú
 def main_menu():
-    filename = 'ayuntamientos_con_estado_http.csv'
+    filename = 'ayuntamientos.csv'
     df = read_csv(filename)
 
     while True:
@@ -95,7 +112,9 @@ def main_menu():
         print("2. Ver los resultados")
         print("3. Crear archivos CSV por código de respuesta HTTP")
         print("4. Revisar errores y crear 'revision_errores.csv'")
-        print("5. Salir")
+        print("5. Comprobar vacíos")
+        print("6. Filtrar vacíos")
+        print("7. Salir")
         choice = input("Selecciona una opción: ")
 
         if choice == '1':
@@ -107,6 +126,10 @@ def main_menu():
         elif choice == '4':
             review_errors_csv()
         elif choice == '5':
+            check_empty_webs(df)
+        elif choice == '6':
+            filter_empty_webs(df)
+        elif choice == '7':
             print("Saliendo...")
             break
         else:
